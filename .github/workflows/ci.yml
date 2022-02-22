@@ -1,0 +1,40 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: dependencies
+      run:
+        sudo apt update && sudo apt install -y valgrind cppcheck g++-9 gcovr
+    - name: make
+      run: cd lab1 && make
+    - name: cppcheck
+      run:
+        cppcheck --enable=all --suppress=missingIncludeSystem .
+    - name: pwd
+      run: pwd
+    - name: valgrind
+      run:
+        valgrind --leak-check=full --show-leak-kinds=all
+                 --track-origins=yes --error-exitcode=1 ./lab1/example1
+    - name: coverage
+      run: |
+        gcov *.c
+        mkdir cov/
+        gcovr -r . --html --html-details -o cov/coverage.html --print-summary
+        mv -v cov/  public/
+    - name: deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./public
+        enable_jekyll: true
